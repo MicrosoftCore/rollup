@@ -145,16 +145,24 @@ export default class Graph {
 	};
 
 	private async generateModuleGraph(): Promise<void> {
+		const normalizeModules = normalizeEntryModules(this.options.input);
+		const addEntryModulesResults = await this.moduleLoader.addEntryModules(normalizeModules, true);
 		({ entryModules: this.entryModules, implicitEntryModules: this.implicitEntryModules } =
-			await this.moduleLoader.addEntryModules(normalizeEntryModules(this.options.input), true));
+			addEntryModulesResults);
 		if (this.entryModules.length === 0) {
 			throw new Error('You must supply options.input to rollup');
 		}
 		for (const module of this.modulesById.values()) {
 			module.cacheInfoGetters();
 			if (module instanceof Module) {
+				if (module.id.includes('.css')) {
+					console.log(module.id);
+				}
 				this.modules.push(module);
 			} else {
+				if (module.id.includes('.css')) {
+					console.log(module.id);
+				}
 				this.externalModules.push(module);
 			}
 		}
