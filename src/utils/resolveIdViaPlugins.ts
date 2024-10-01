@@ -37,10 +37,18 @@ export function resolveIdViaPlugins(
 			}
 		});
 	}
-	return pluginDriver.hookFirstAndGetPlugin(
+
+	/**
+	 * @description 第一次调用解析入口文件
+	 * @returns [ResolveIdResult, Plugin]
+	 * @author justinhone <justinhonejiang@gmail.com>
+	 * @date 2024-10-01 15:02
+	 */
+	const resolveIdResultAndPlugin = pluginDriver.hookFirstAndGetPlugin(
 		'resolveId',
 		[source, importer, { attributes, custom: customOptions, isEntry }],
 		replaceContext,
 		skipped
 	);
+	return resolveIdResultAndPlugin;
 }

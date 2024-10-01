@@ -9,6 +9,11 @@ import { handleError, stderr } from '../logging';
 import type { BatchWarnings } from './loadConfigFileType';
 import { printTimings } from './timings';
 
+/**
+ * @description 打包脚本总入口
+ * @author justinhone <justinhonejiang@gmail.com>
+ * @date 2024-10-01 10:20
+ */
 export default async function build(
 	inputOptions: MergedRollupOptions,
 	warnings: BatchWarnings,

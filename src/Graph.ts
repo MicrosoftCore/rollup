@@ -72,6 +72,11 @@ export default class Graph {
 	private modules: Module[] = [];
 	private declare pluginCache?: Record<string, SerializablePluginCache>;
 
+	/**
+	 * @description 基于 <NormalizedInputOptions> 创建依赖视图
+	 * @author justinhone <justinhonejiang@gmail.com>
+	 * @date 2024-10-01 10:26
+	 */
 	constructor(
 		private readonly options: NormalizedInputOptions,
 		watcher: RollupWatcher | null
@@ -97,12 +102,39 @@ export default class Graph {
 			watcher.onCurrentRun('change', handleChange);
 			watcher.onCurrentRun('close', handleClose);
 		}
+		/**
+		 * @description 初始化 FileEmitter, pluginContexts, plugins,
+		 * 继承 FileEmitter 内部函数
+		 * @author justinhone <justinhonejiang@gmail.com>
+		 * @date 2024-10-01 10:28
+		 */
 		this.pluginDriver = new PluginDriver(this, options, options.plugins, this.pluginCache);
+		/**
+		 * @description 只做 moduleSideEffects 初始化
+		 * @author justinhone <justinhonejiang@gmail.com>
+		 * @date 2024-10-01 10:30
+		 */
 		this.moduleLoader = new ModuleLoader(this, this.modulesById, this.options, this.pluginDriver);
+		/**
+		 * @description 初始化队列 utils/options/normalizeInputOptions getMaxParallelFileOps
+		 * @default 20
+		 * @author justinhone <justinhonejiang@gmail.com>
+		 * @date 2024-10-01 10:31
+		 */
 		this.fileOperationQueue = new Queue(options.maxParallelFileOps);
+		/**
+		 * @description @see {@link https://rollupjs.org/configuration-options/#treeshake-manualpurefunctions}
+		 * @author justinhone <justinhonejiang@gmail.com>
+		 * @date 2024-10-01 10:34
+		 */
 		this.pureFunctions = getPureFunctions(options);
 	}
 
+	/**
+	 * @description rollup build 起点
+	 * @author justinhone <justinhonejiang@gmail.com>
+	 * @date 2024-10-01 11:36
+	 */
 	async build(): Promise<void> {
 		timeStart('generate module graph', 2);
 		await this.generateModuleGraph();
@@ -146,9 +178,13 @@ export default class Graph {
 
 	private async generateModuleGraph(): Promise<void> {
 		const normalizeModules = normalizeEntryModules(this.options.input);
-		const addEntryModulesResults = await this.moduleLoader.addEntryModules(normalizeModules, true);
 		({ entryModules: this.entryModules, implicitEntryModules: this.implicitEntryModules } =
-			addEntryModulesResults);
+			/**
+			 * @description 从用户配置的入口文件开始解析
+			 * @author justinhone <justinhonejiang@gmail.com>
+			 * @date 2024-10-01 11:38
+			 */
+			await this.moduleLoader.addEntryModules(normalizeModules, true));
 		if (this.entryModules.length === 0) {
 			throw new Error('You must supply options.input to rollup');
 		}

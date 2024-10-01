@@ -95,6 +95,13 @@ export class ModuleLoader {
 		private readonly options: NormalizedInputOptions,
 		private readonly pluginDriver: PluginDriver
 	) {
+		/**
+		 * @description 解析 treeshake options (merged by default)
+		 * 如果没传则为空数组
+		 * 📌 外部获取包含副作用的模块id传进来，看rollup如何分析
+		 * @author justinhone <justinhonejiang@gmail.com>
+		 * @date 2024-10-01 11:50
+		 */
 		this.hasModuleSideEffects = options.treeshake
 			? options.treeshake.moduleSideEffects
 			: () => true;
@@ -115,6 +122,11 @@ export class ModuleLoader {
 		return result;
 	}
 
+	/**
+	 * @description 此时入口文件还没解析，id 仍为用户设置的原始id
+	 * @author justinhone <justinhonejiang@gmail.com>
+	 * @date 2024-10-01 11:51
+	 */
 	async addEntryModules(
 		unresolvedEntryModules: readonly UnresolvedModule[],
 		isUserDefined: boolean
@@ -206,6 +218,11 @@ export class ModuleLoader {
 		return module.info;
 	}
 
+	/**
+	 * @description @callee <PluginContext>.resolveId
+	 * @author justinhone <justinhonejiang@gmail.com>
+	 * @date 2024-10-01 11:52
+	 */
 	resolveId: ModuleLoaderResolveId = async (
 		source,
 		importer,
@@ -277,10 +294,20 @@ export class ModuleLoader {
 	): Promise<void> {
 		let source: LoadResult;
 		try {
+			/**
+			 * @description IO调用，耗时操作，加入队列中执行
+			 * @author justinhone <justinhonejiang@gmail.com>
+			 * @date 2024-10-01 11:53
+			 */
 			source = await this.graph.fileOperationQueue.run(async () => {
 				const content = await this.pluginDriver.hookFirst('load', [id]);
 				if (content !== null) return content;
 				this.graph.watchFiles[id] = true;
+				/**
+				 * @description 如果没有 load 钩子处理此文件，则直接读文件内容
+				 * @author justinhone <justinhonejiang@gmail.com>
+				 * @date 2024-10-01 11:53
+				 */
 				return await readFile(id, 'utf8');
 			});
 		} catch (error_: any) {
@@ -290,6 +317,12 @@ export class ModuleLoader {
 			error_.message = message;
 			throw error_;
 		}
+
+		/**
+		 * @description 这里可能是 load 钩子返回的结果
+		 * @author justinhone <justinhonejiang@gmail.com>
+		 * @date 2024-10-01 11:54
+		 */
 		const sourceDescription =
 			typeof source === 'string'
 				? { code: source }
@@ -300,11 +333,22 @@ export class ModuleLoader {
 		if (code.charCodeAt(0) === 0xfe_ff) {
 			sourceDescription.code = code.slice(1);
 		}
+
+		/**
+		 * @description Graph 初始化时设置的 cachedModules, 可以再回去看看初始化的逻辑
+		 * @author justinhone <justinhonejiang@gmail.com>
+		 * @date 2024-10-01 11:54
+		 */
 		const cachedModule = this.graph.cachedModules.get(id);
 		if (
 			cachedModule &&
 			!cachedModule.customTransformCache &&
 			cachedModule.originalCode === sourceDescription.code &&
+			/**
+			 * @fires 🧲[shouldTransformCachedModule]
+			 * @author justinhone <justinhonejiang@gmail.com>
+			 * @date 2024-10-01 11:55
+			 */
 			!(await this.pluginDriver.hookFirst('shouldTransformCachedModule', [
 				{
 					ast: cachedModule.ast,
@@ -323,6 +367,11 @@ export class ModuleLoader {
 			}
 			await module.setSource(cachedModule);
 		} else {
+			/**
+			 * @description 更新 moduleSideEffects, syntheticNamedExports, meta 三个信息
+			 * @author justinhone <justinhonejiang@gmail.com>
+			 * @date 2024-10-01 14:12
+			 */
 			module.updateOptions(sourceDescription);
 			await module.setSource(
 				await transform(sourceDescription, module, this.pluginDriver, this.options.onLog)
@@ -404,6 +453,12 @@ export class ModuleLoader {
 			return error(logExternalModulesCannotBeTransformedToModules(existingModule.id));
 		}
 
+		/**
+		 * @description 初始化 Module, 生成ModuleInfo, 但此时 moduleInfo 的各类信息都是空的,
+		 * 比如 ast 还未初始化, 导入导出也未解析
+		 * @author justinhone <justinhonejiang@gmail.com>
+		 * @date 2024-10-01 14:14
+		 */
 		const module = new Module(
 			this.graph,
 			id,
@@ -415,6 +470,11 @@ export class ModuleLoader {
 			attributes
 		);
 		this.modulesById.set(id, module);
+		/**
+		 * @description resolve 当前模块的子模块
+		 * @author justinhone <justinhonejiang@gmail.com>
+		 * @date 2024-10-01 14:15
+		 */
 		const loadPromise: LoadModulePromise = this.addModuleSource(id, importer, module).then(() => [
 			this.getResolveStaticDependencyPromises(module),
 			this.getResolveDynamicImportPromises(module),
@@ -696,6 +756,11 @@ export class ModuleLoader {
 					: logImplicitDependantCannotBeExternal(unresolvedId, implicitlyLoadedBefore)
 			);
 		}
+		/**
+		 * @description 拿到入口文件的完整信息后开始解析入口文件
+		 * @author justinhone <justinhonejiang@gmail.com>
+		 * @date 2024-10-01 14:16
+		 */
 		return this.fetchModule(
 			this.getResolvedIdWithDefaults(
 				typeof resolveIdResult === 'object'

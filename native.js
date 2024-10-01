@@ -34,6 +34,11 @@ const msvcLinkFilenameByArch = {
 	x64: 'vc_redist.x64.exe'
 };
 
+/**
+ * @description darwin-arm64 in mac & win32-x64-msvc in windows
+ * @author justinhone <justinhonejiang@gmail.com>
+ * @date 2024-10-01 10:10
+ */
 const packageBase = getPackageBase();
 const localName = `./rollup.${packageBase}.node`;
 const requireWithFriendlyError = id => {
@@ -65,6 +70,13 @@ const requireWithFriendlyError = id => {
 	}
 };
 
+/**
+ * @description Mac 端需要手动安装 @rollup/rollup-darwin-arm64@4.18.0
+ * windows 则为 @rollup/rollup-win32-x64-msvc, 无需手动安装
+ * 用于原生代码解析
+ * @author justinhone <justinhonejiang@gmail.com>
+ * @date 2024-10-01 10:12
+ */
 const { parse, parseAsync, xxhashBase64Url, xxhashBase36, xxhashBase16 } = requireWithFriendlyError(
 	existsSync(path.join(__dirname, localName)) ? localName : `@rollup/rollup-${packageBase}`
 );

@@ -34,6 +34,11 @@ export const loadConfigFile: LoadConfigFile = async (
 		const normalizedConfigs: MergedRollupOptions[] = [];
 		for (const config of configs) {
 			const options = await mergeOptions(config, watchMode, commandOptions, warnings.log);
+			/**
+			 * @description addCommandPluginsToInputOptions 将添加 rollup 内置的 stdinPlugin
+			 * @author justinhone <justinhonejiang@gmail.com>
+			 * @date 2024-10-01 10:23
+			 */
 			await addCommandPluginsToInputOptions(options, commandOptions);
 			normalizedConfigs.push(options);
 		}

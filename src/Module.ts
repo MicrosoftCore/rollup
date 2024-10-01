@@ -205,6 +205,11 @@ function getAndExtendSideEffectModules(variable: Variable, module: Module): Set<
 	return sideEffectModules;
 }
 
+/**
+ * @description 初始化 AstScope
+ * @author justinhone <justinhonejiang@gmail.com>
+ * @date 2024-10-01 11:41
+ */
 export default class Module {
 	readonly alternativeReexportModules = new Map<Variable, Module>();
 	readonly chunkFileNames = new Set<string>();
@@ -811,22 +816,37 @@ export default class Module {
 		return { source, usesTopLevelAwait };
 	}
 
+	/**
+	 * @description 调用原生能力解析 code to buffer to ast
+	 *
+	 * @callee
+	 * tansform 后的结果
+	 * cachedModule extends TransformModuleJSON
+	 * 类内部 setSource
+	 * @author justinhone <justinhonejiang@gmail.com>
+	 * @date 2024-10-01 11:42
+	 */
 	async setSource({
 		ast,
-		code,
-		customTransformCache,
-		originalCode,
-		originalSourcemap,
-		resolvedIds,
-		sourcemapChain,
-		transformDependencies,
-		transformFiles,
+		code, // tansform
+		customTransformCache, // tansform
+		originalCode, // tansform
+		originalSourcemap, // tansform
+		resolvedIds, // cachedModule
+		sourcemapChain, // tansform
+		transformDependencies, // tansform
+		transformFiles, // cachedModule
 		...moduleOptions
 	}: TransformModuleJSON & {
 		resolvedIds?: ResolvedIdMap;
 		transformFiles?: EmittedFile[] | undefined;
 	}): Promise<void> {
 		timeStart('generate ast', 3);
+		/**
+		 * @description ❓
+		 * @author justinhone <justinhonejiang@gmail.com>
+		 * @date 2024-10-01 11:47
+		 */
 		if (code.startsWith('#!')) {
 			const shebangEndPosition = code.indexOf('\n');
 			this.shebang = code.slice(2, shebangEndPosition);
@@ -898,6 +918,12 @@ export default class Module {
 		this.namespace = new NamespaceVariable(this.astContext);
 		const programParent = { context: this.astContext, type: 'Module' };
 
+		/**
+		 * @description transform 返回的 ast
+		 * 📌 通过生成新的 ast 触发 rollup 更新Module行为
+		 * @author justinhone <justinhonejiang@gmail.com>
+		 * @date 2024-10-01 11:47
+		 */
 		if (ast) {
 			this.ast = new nodeConstructors[ast.type](programParent, this.scope).parseNode(
 				ast
@@ -1003,6 +1029,11 @@ export default class Module {
 		return null;
 	}
 
+	/**
+	 * @description load, transform or  setSource(cachedModule) 更新过
+	 * @author justinhone <justinhonejiang@gmail.com>
+	 * @date 2024-10-01 11:48
+	 */
 	updateOptions({
 		meta,
 		moduleSideEffects,
@@ -1214,6 +1245,11 @@ export default class Module {
 		addSideEffectDependencies(alwaysCheckedDependencies);
 	}
 
+	/**
+	 * @description ast ImportDeclaration 解析时调用更新 sourcesWithAttributes
+	 * @author justinhone <justinhonejiang@gmail.com>
+	 * @date 2024-10-01 14:28
+	 */
 	private addSource(
 		source: string,
 		declaration: ImportDeclaration | ExportNamedDeclaration | ExportAllDeclaration

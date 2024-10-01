@@ -132,3 +132,13 @@ TNG has been supporting the work of [Lukas Taegert-Atkinson](https://github.com/
 ## License
 
 [MIT](https://github.com/rollup/rollup/blob/master/LICENSE.md)
+
+🔄 (循环)：表示过程的重复或钩子函数在构建过程中的多次调用
+
+🧲 (钩子函数): rollup 构建时执行的钩子函数
+
+❓ (暂未知其意义)：暂时跳过，稍后查资料，深入理解
+
+📌 (待开发)
+
+⏯️ (暂时跳过需要回看)

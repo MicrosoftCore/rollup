@@ -5,17 +5,29 @@ import { lstat, readdir, realpath } from './fs';
 import { basename, dirname, isAbsolute, resolve } from './path';
 import { resolveIdViaPlugins } from './resolveIdViaPlugins';
 
+/**
+ * @description @callee
+ * first callee is the ModuleLoader.loadEntryModule
+ * <PluginContext>this.load => ModuleLoader.resolveId => here
+ * @author justinhone <justinhonejiang@gmail.com>
+ * @date 2024-10-01 14:52
+ */
 export async function resolveId(
 	source: string,
 	importer: string | undefined,
 	preserveSymlinks: boolean,
 	pluginDriver: PluginDriver,
 	moduleLoaderResolveId: ModuleLoaderResolveId,
-	skip: readonly { importer: string | undefined; plugin: Plugin; source: string }[] | null,
-	customOptions: CustomPluginOptions | undefined,
-	isEntry: boolean,
-	attributes: Record<string, string>
+	skip: readonly { importer: string | undefined; plugin: Plugin; source: string }[] | null, // null
+	customOptions: CustomPluginOptions | undefined, // EMPTY_OBJECT
+	isEntry: boolean, // true
+	attributes: Record<string, string> // EMPTY_OBJECT
 ): Promise<ResolveIdResult> {
+	/**
+	 * @description node-resolve 每次返回绝对路径的 id 时，都会重新遍历所有插件的 resolveId
+	 * @author justinhone <justinhonejiang@gmail.com>
+	 * @date 2024-10-01 14:54
+	 */
 	const pluginResult = await resolveIdViaPlugins(
 		source,
 		importer,
@@ -27,6 +39,11 @@ export async function resolveId(
 		attributes
 	);
 
+	/**
+	 * @description 如果解析结果不为空, 返回解析结果, 这个解析结果就是 this.resolveId 的结果
+	 * @author justinhone <justinhonejiang@gmail.com>
+	 * @date 2024-10-01 14:55
+	 */
 	if (pluginResult != null) {
 		const [resolveIdResult, plugin] = pluginResult;
 		if (typeof resolveIdResult === 'object' && !resolveIdResult.resolvedBy) {
@@ -52,6 +69,11 @@ export async function resolveId(
 	// absolute path is created. Absolute importees therefore shortcircuit the
 	// resolve call and require no special handing on our part.
 	// See https://nodejs.org/api/path.html#path_path_resolve_paths
+	/**
+	 * @description ⏯️看看人家是怎么处理 Extension 的
+	 * @author justinhone <justinhonejiang@gmail.com>
+	 * @date 2024-10-01 14:56
+	 */
 	return addJsExtensionIfNecessary(
 		importer ? resolve(dirname(importer), source) : resolve(source),
 		preserveSymlinks

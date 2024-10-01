@@ -107,6 +107,7 @@
     "fsevents": "~2.3.2"
   },
   "dependencies": {
+    "@rollup/rollup-darwin-arm64": "4.18.0",
     "@rollup/rollup-win32-x64-msvc": "^4.18.0",
     "@types/estree": "1.0.5"
   },

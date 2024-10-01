@@ -28,6 +28,13 @@ import {
 } from './logs';
 import { normalizeLog } from './options/options';
 
+/**
+ * @description 处理源码, 填充 ModuleInfo
+ * 处理 sourcemap
+ * 分析 ast
+ * @author justinhone <justinhonejiang@gmail.com>
+ * @date 2024-10-01 15:03
+ */
 export default async function transform(
 	source: SourceDescription,
 	module: Module,
@@ -47,6 +54,15 @@ export default async function transform(
 	let pluginName = '';
 	let currentSource = source.code;
 
+	/**
+	 * @author justinhone <justinhonejiang@gmail.com>
+	 * @date 2024-10-01 15:03
+	 * @param this PluginContext
+	 * @param previousCode 源代码 Arguments0
+	 * @param result plugin transform 处理后的结果
+	 * @param plugin 当前处理的插件
+	 * @returns
+	 */
 	function transformReducer(
 		this: PluginContext,
 		previousCode: string,
@@ -74,6 +90,11 @@ export default async function transform(
 		// while 'undefined' gets the missing map warning
 		if (map !== null) {
 			sourcemapChain.push(
+				/**
+				 * @description decode scourcemap mappings
+				 * @author justinhone <justinhonejiang@gmail.com>
+				 * @date 2024-10-01 15:05
+				 */
 				decodedSourcemap(typeof map === 'string' ? JSON.parse(map) : map) || {
 					missing: true,
 					plugin: plugin.name
@@ -99,6 +120,13 @@ export default async function transform(
 	let code: string;
 
 	try {
+		/**
+		 * @description 此函数为promise 链式调用, 每个 transform 钩子都要等待上一个 tranform 的结果,
+		 * 且结果都需要回调给 transformReducer 处理, 做 map 的解码, currentSource 和 ast 的内部更新
+		 * @fires 🧲[transform]
+		 * @author justinhone <justinhonejiang@gmail.com>
+		 * @date 2024-10-01 15:06
+		 */
 		code = await pluginDriver.hookReduceArg0(
 			'transform',
 			[currentSource, id],

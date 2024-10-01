@@ -22,6 +22,12 @@ export default class ImportDeclaration extends NodeBase {
 		return false;
 	}
 
+	/**
+	 * @description 解析出当前模块的 imports
+	 * 调用 Module 类里的 addImport 将其记录到 module.sourcesWithAttributes
+	 * @author justinhone <justinhonejiang@gmail.com>
+	 * @date 2024-10-01 14:27
+	 */
 	initialise(): void {
 		super.initialise();
 		this.scope.context.addImport(this);

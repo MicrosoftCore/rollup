@@ -58,6 +58,12 @@ export default async function runRollup(command: Record<string, any>): Promise<v
 		await watch(command);
 	} else {
 		try {
+			/**
+			 * @description 加载配置文件，合并默认配置选项
+			 * @returns options[]
+			 * @author justinhone <justinhonejiang@gmail.com>
+			 * @date 2024-10-01 10:21
+			 */
 			const { options, warnings } = await getConfigs(command);
 			try {
 				for (const inputOptions of options) {

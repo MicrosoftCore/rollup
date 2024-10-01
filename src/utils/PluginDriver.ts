@@ -102,6 +102,11 @@ export class PluginDriver {
 		this.plugins = [...(basePluginDriver ? basePluginDriver.plugins : []), ...userPlugins];
 		const existingPluginNames = new Set<string>();
 
+		/**
+		 * @description 创建 PluginContext
+		 * @author justinhone <justinhonejiang@gmail.com>
+		 * @date 2024-10-01 14:44
+		 */
 		this.pluginContexts = new Map(
 			this.plugins.map(plugin => [
 				plugin,
@@ -141,13 +146,24 @@ export class PluginDriver {
 	}
 
 	// chains, first non-null result stops and returns result and last plugin
+	/**
+	 * @description chains, first non-null result stops and returns result and last plugin
+	 * 这里判断钩子的返回值必须是 null 时才会跳过当前钩子交给下一个钩子执行
+	 *
+	 * @callee
+	 * 类内部调用
+	 * resolveIdViaPlugins
+	 * @author justinhone <justinhonejiang@gmail.com>
+	 * @date 2024-10-01 14:44
+	 */
 	async hookFirstAndGetPlugin<H extends AsyncPluginHooks & FirstPluginHooks>(
 		hookName: H,
 		parameters: Parameters<FunctionPluginHooks[H]>,
 		replaceContext?: ReplaceContext | null,
 		skipped?: ReadonlySet<Plugin> | null
 	): Promise<[NonNullable<ReturnType<FunctionPluginHooks[H]>>, Plugin] | null> {
-		for (const plugin of this.getSortedPlugins(hookName)) {
+		const pluginsWithHookName = this.getSortedPlugins(hookName);
+		for (const plugin of pluginsWithHookName) {
 			if (skipped?.has(plugin)) continue;
 			const result = await this.runHook(hookName, parameters, plugin, replaceContext);
 			if (result != null) return [result, plugin];
@@ -188,6 +204,13 @@ export class PluginDriver {
 	}
 
 	// chains, reduces returned value, handling the reduced value as the first hook argument
+	/**
+	 * @description @callee 两个钩子使用此方法
+	 * transform （提供了 replaceContext）
+	 * renderChunk
+	 * @author justinhone <justinhonejiang@gmail.com>
+	 * @date 2024-10-01 14:48
+	 */
 	hookReduceArg0<H extends AsyncPluginHooks & SequentialPluginHooks>(
 		hookName: H,
 		[argument0, ...rest]: Parameters<FunctionPluginHooks[H]>,

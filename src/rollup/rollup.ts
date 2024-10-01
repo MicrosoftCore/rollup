@@ -42,10 +42,21 @@ export default function rollup(rawInputOptions: RollupOptions): Promise<RollupBu
 	return rollupInternal(rawInputOptions, null);
 }
 
+/**
+ * @description 开始构建, 执行 inputOptions
+ * @author justinhone <justinhonejiang@gmail.com>
+ * @date 2024-10-01 14:31
+ */
 export async function rollupInternal(
 	rawInputOptions: RollupOptions,
 	watcher: RollupWatcher | null
 ): Promise<RollupBuild> {
+	/**
+	 * @description 触发钩子 options, 合并默认选项
+	 * @fires 🧲[options]
+	 * @author justinhone <justinhonejiang@gmail.com>
+	 * @date 2024-10-01 14:31
+	 */
 	const { options: inputOptions, unsetOptions: unsetInputOptions } = await getInputOptions(
 		rawInputOptions,
 		watcher !== null
@@ -54,6 +65,14 @@ export async function rollupInternal(
 
 	await initWasm();
 
+	/**
+	 * @description 初始化Graph
+	 * 初始化 PluginDriver
+	 * 初始化 ModuleLoader
+	 * 初始化 Queue
+	 * @author justinhone <justinhonejiang@gmail.com>
+	 * @date 2024-10-01 14:41
+	 */
 	const graph = new Graph(inputOptions, watcher);
 
 	// remove the cache object from the memory after graph creation (cache is not used anymore)
@@ -68,6 +87,12 @@ export async function rollupInternal(
 	await catchUnfinishedHookActions(graph.pluginDriver, async () => {
 		try {
 			timeStart('initialize', 2);
+			/**
+			 * @description Description
+			 * @fires 🧲[buildStart]
+			 * @author justinhone <justinhonejiang@gmail.com>
+			 * @date 2024-10-01 14:42
+			 */
 			await graph.pluginDriver.hookParallel('buildStart', [inputOptions]);
 			timeEnd('initialize', 2);
 			await graph.build();
@@ -76,7 +101,19 @@ export async function rollupInternal(
 			if (watchFiles.length > 0) {
 				error_.watchFiles = watchFiles;
 			}
+			/**
+			 * @description Description
+			 * @fires 🧲[buildEnd]
+			 * @author justinhone <justinhonejiang@gmail.com>
+			 * @date 2024-10-01 14:42
+			 */
 			await graph.pluginDriver.hookParallel('buildEnd', [error_]);
+			/**
+			 * @description Description
+			 * @fires 🧲[closeBundle]
+			 * @author justinhone <justinhonejiang@gmail.com>
+			 * @date 2024-10-01 14:42
+			 */
 			await graph.pluginDriver.hookParallel('closeBundle', []);
 			throw error_;
 		}
