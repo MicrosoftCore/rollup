@@ -822,7 +822,7 @@ export default class Module {
 	 * @callee
 	 * tansform 后的结果
 	 * cachedModule extends TransformModuleJSON
-	 * 类内部 setSource
+	 * this.setSource
 	 * @author justinhone <justinhonejiang@gmail.com>
 	 * @date 2024-10-01 11:42
 	 */

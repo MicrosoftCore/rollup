@@ -8,7 +8,7 @@ import { resolveIdViaPlugins } from './resolveIdViaPlugins';
 /**
  * @description @callee
  * first callee is the ModuleLoader.loadEntryModule
- * <PluginContext>this.load => ModuleLoader.resolveId => here
+ * <PluginContext>this.load => ModuleLoader.resolveId
  * @author justinhone <justinhonejiang@gmail.com>
  * @date 2024-10-01 14:52
  */

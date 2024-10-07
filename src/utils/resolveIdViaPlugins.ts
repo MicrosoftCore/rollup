@@ -41,6 +41,7 @@ export function resolveIdViaPlugins(
 	/**
 	 * @description 第一次调用解析入口文件
 	 * @returns [ResolveIdResult, Plugin]
+	 * @fires 🧲[resolveId]
 	 * @author justinhone <justinhonejiang@gmail.com>
 	 * @date 2024-10-01 15:02
 	 */

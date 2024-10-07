@@ -67,6 +67,11 @@ export function getPluginContext(
 		getWatchFiles: () => Object.keys(graph.watchFiles),
 		info: getLogHandler(LOGLEVEL_INFO, 'PLUGIN_LOG', onLog, plugin.name, logLevel),
 		load(resolvedId) {
+			/**
+			 * @description commonjs 在 resolveId 在 node-resolve resolveId 处理完成后调用 load
+			 * @author justinhone <justinhonejiang@gmail.com>
+			 * @date 2024-10-04 13:04
+			 */
 			return graph.moduleLoader.preloadModule(resolvedId);
 		},
 		meta: {

@@ -142,3 +142,5 @@ TNG has been supporting the work of [Lukas Taegert-Atkinson](https://github.com/
 📌 (待开发)
 
 ⏯️ (暂时跳过需要回看)
+
+📜 (可以通过日志查询)

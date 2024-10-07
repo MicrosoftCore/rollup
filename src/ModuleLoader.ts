@@ -124,6 +124,9 @@ export class ModuleLoader {
 
 	/**
 	 * @description 此时入口文件还没解析，id 仍为用户设置的原始id
+	 * @callee
+	 * Graph.generateModuleGraph
+	 * this.emitChunk
 	 * @author justinhone <justinhonejiang@gmail.com>
 	 * @date 2024-10-01 11:51
 	 */
@@ -206,6 +209,12 @@ export class ModuleLoader {
 		return module;
 	}
 
+	/**
+	 * @description <PluginContext>.load 的调用时 preloadModule
+	 * @callee <PluginContext>.load
+	 * @author justinhone <justinhonejiang@gmail.com>
+	 * @date 2024-10-02 11:45
+	 */
 	public async preloadModule(
 		resolvedId: { id: string; resolveDependencies?: boolean } & Partial<PartialNull<ModuleOptions>>
 	): Promise<ModuleInfo> {
@@ -219,7 +228,7 @@ export class ModuleLoader {
 	}
 
 	/**
-	 * @description @callee <PluginContext>.resolveId
+	 * @description @callee <PluginContext>.resolve
 	 * @author justinhone <justinhonejiang@gmail.com>
 	 * @date 2024-10-01 11:52
 	 */
@@ -233,6 +242,12 @@ export class ModuleLoader {
 	) =>
 		this.getResolvedIdWithDefaults(
 			this.getNormalizedResolvedIdWithoutDefaults(
+				/**
+				 * @description @see {@link https://rollupjs.org/configuration-options/#external}
+				 * 先排除掉已知的, 想要 external 化的模块
+				 * @author justinhone <justinhonejiang@gmail.com>
+				 * @date 2024-10-02 11:19
+				 */
 				this.options.external(source, importer, false)
 					? false
 					: await resolveId(
@@ -287,6 +302,17 @@ export class ModuleLoader {
 		);
 	}
 
+	/**
+	 * @description Get source from <PluginContext>.load or readFile
+	 * then setSource
+	 *
+	 * @callhook
+	 * load get source
+	 * shouldTransformCachedModule ask if cacheModule
+	 * transform for setSource
+	 * @author justinhone <justinhonejiang@gmail.com>
+	 * @date 2024-10-06 11:50
+	 */
 	private async addModuleSource(
 		id: string,
 		importer: string | undefined,
@@ -431,6 +457,14 @@ export class ModuleLoader {
 	// Otherwise, if the module does not exist, it waits for the module and all
 	// its dependencies to be loaded.
 	// Otherwise, it returns immediately.
+	/**
+	 * @description @callee
+	 * <PluginContext>.load => preloadModule isEntry: false, isPreload: resolveDependencies | true
+	 * this.fetchResolvedDependency          isEntry: false, isPreload: false
+	 * this.loadEntryModule                  isEntry: true | false, isPreload: false
+	 * @author justinhone <justinhonejiang@gmail.com>
+	 * @date 2024-10-04 02:26
+	 */
 	private async fetchModule(
 		{ attributes, id, meta, moduleSideEffects, syntheticNamedExports }: ResolvedId,
 		importer: string | undefined,
@@ -445,6 +479,12 @@ export class ModuleLoader {
 					logInconsistentImportAttributes(existingModule.info.attributes, attributes, id, importer)
 				);
 			}
+			/**
+			 * @description <PluginContext>.load 时 EntryModule ats 已经生成
+			 * 等 dependencies 全部 load 完成
+			 * @author justinhone <justinhonejiang@gmail.com>
+			 * @date 2024-10-04 12:47
+			 */
 			await this.handleExistingModule(existingModule, isEntry, isPreload);
 			return existingModule;
 		}
@@ -470,32 +510,98 @@ export class ModuleLoader {
 			attributes
 		);
 		this.modulesById.set(id, module);
+
 		/**
-		 * @description resolve 当前模块的子模块
+		 * @description 主要做文件的读取, tranform 钩子的执行, ast语法树的解析,
+		 * 和其他一些 ModuleInfo 信息的填充
 		 * @author justinhone <justinhonejiang@gmail.com>
-		 * @date 2024-10-01 14:15
+		 * @date 2024-10-02 11:23
 		 */
 		const loadPromise: LoadModulePromise = this.addModuleSource(id, importer, module).then(() => [
+			/**
+			 * @description sync get just an Array<Promise<[source, ResolvedId]>>
+			 * @author justinhone <justinhonejiang@gmail.com>
+			 * @date 2024-10-01 14:15
+			 */
 			this.getResolveStaticDependencyPromises(module),
+			/**
+			 * @description sync get just an Array<Promise<[dynamicImport, ResolvedId]>>
+			 * @author justinhone <justinhonejiang@gmail.com>
+			 * @date 2024-10-02 11:30
+			 */
 			this.getResolveDynamicImportPromises(module),
+			/**
+			 * @description await all static or dynamic dependencies resolved.
+			 * @author justinhone <justinhonejiang@gmail.com>
+			 * @date 2024-10-08 01:20
+			 */
 			loadAndResolveDependenciesPromise
 		]);
+		/**
+		 * @description 等待当前模块的动态和静态模块加载完成,
+		 * 通知钩子当前模块已经解析完成
+		 *
+		 * take two promise
+		 * @fires 🧲[moduleParsed]
+		 * @author justinhone <justinhonejiang@gmail.com>
+		 * @date 2024-10-02 11:36
+		 */
 		const loadAndResolveDependenciesPromise = waitForDependencyResolution(loadPromise).then(() =>
 			this.pluginDriver.hookParallel('moduleParsed', [module.info])
 		);
 		loadAndResolveDependenciesPromise.catch(() => {
 			/* avoid unhandled promise rejections */
 		});
+		/**
+		 * @description 记录下当前 Module 和它的 loadPromise
+		 * @author justinhone <justinhonejiang@gmail.com>
+		 * @date 2024-10-02 11:40
+		 */
 		this.moduleLoadPromises.set(module, loadPromise);
+		/**
+		 * @description waiting for all static and dynamic dependency loaded
+		 * @author justinhone <justinhonejiang@gmail.com>
+		 * @date 2024-10-04 02:10
+		 */
 		const resolveDependencyPromises = await loadPromise;
+
+		/**
+		 * @description @see {@link https://rollupjs.org/plugin-development/#this-load}
+		 * this.load can only be called with true or resolveDependencies
+		 *
+		 * you can either implement a moduleParsed hook or pass the resolveDependencies flag,
+		 * which will make the Promise returned by this.load wait until all dependency ids have been resolved.
+		 * @author justinhone <justinhonejiang@gmail.com>
+		 * @date 2024-10-02 11:48
+		 */
 		if (!isPreload) {
+			/**
+			 * @description [[],[],loadAndResolveDependenciesPromise],
+			 * 目前发现 css 模块，但由于 ast 分析 module.sourcesWithAttributes为空，因此dependencePromise 都为空
+			 * @author justinhone <justinhonejiang@gmail.com>
+			 * @date 2024-10-04 12:38
+			 */
 			await this.fetchModuleDependencies(module, ...resolveDependencyPromises);
 		} else if (isPreload === RESOLVE_DEPENDENCIES) {
+			/**
+			 * @description resolveDependencies
+			 * @author justinhone <justinhonejiang@gmail.com>
+			 * @date 2024-10-04 01:57
+			 */
 			await loadAndResolveDependenciesPromise;
 		}
 		return module;
 	}
 
+	/**
+	 * @description called when !isPreload
+	 * @callee
+	 * this.handleExistingModule
+	 * this.fetchModule
+	 *
+	 * @author justinhone <justinhonejiang@gmail.com>
+	 * @date 2024-10-08 01:26
+	 */
 	private async fetchModuleDependencies(
 		module: Module,
 		resolveStaticDependencyPromises: readonly ResolveStaticDependencyPromise[],
@@ -535,6 +641,11 @@ export class ModuleLoader {
 				this.modulesById.set(id, externalModule);
 			} else if (!(externalModule instanceof ExternalModule)) {
 				return error(logInternalIdCannotBeExternal(source, importer));
+				/**
+				 * @description ⏯️ 需要回看如何处理 external 模块
+				 * @author justinhone <justinhonejiang@gmail.com>
+				 * @date 2024-10-04 12:34
+				 */
 			} else if (doAttributesDiffer(externalModule.info.attributes, attributes)) {
 				this.options.onLog(
 					LOGLEVEL_WARN,
@@ -621,6 +732,12 @@ export class ModuleLoader {
 		};
 	}
 
+	/**
+	 * @description 解析动态引入
+	 * @returns {Promise<readonly [dynamicImport: DynamicImport, resolvedId: ResolvedId | string | null]>}
+	 * @author justinhone <justinhonejiang@gmail.com>
+	 * @date 2024-10-02 11:27
+	 */
 	private getResolveDynamicImportPromises(module: Module): ResolveDynamicDependencyPromise[] {
 		return module.dynamicImports.map(async dynamicImport => {
 			const resolvedId = await this.resolveDynamicImport(
@@ -636,6 +753,12 @@ export class ModuleLoader {
 		});
 	}
 
+	/**
+	 * @description Module通过 addImport & ast parse 分析出当前模块的sourcesWithAttributes
+	 * Note: getResolveStaticDependencyPromises itself is a sync function
+	 * @author justinhone <justinhonejiang@gmail.com>
+	 * @date 2024-10-02 10:56
+	 */
 	private getResolveStaticDependencyPromises(module: Module): ResolveStaticDependencyPromise[] {
 		// eslint-disable-next-line unicorn/prefer-spread
 		return Array.from(
@@ -678,9 +801,31 @@ export class ModuleLoader {
 	private async handleExistingModule(module: Module, isEntry: boolean, isPreload: PreloadType) {
 		const loadPromise = this.moduleLoadPromises.get(module)!;
 		if (isPreload) {
+			/**
+			 * @description @callee preloadModule
+			 * pass the resolveDependencies flag,
+			 * which will make the Promise returned by this.load wait until all dependency ids have been resolved.
+			 *
+			 * isPreload is RESOLVE_DEPENDENCIES when resolveDependencies options is true,
+			 * or true when resolveDependencies options is false
+			 * @author justinhone <justinhonejiang@gmail.com>
+			 * @date 2024-10-07 01:22
+			 */
 			return isPreload === RESOLVE_DEPENDENCIES
-				? waitForDependencyResolution(loadPromise)
-				: loadPromise;
+				? /**
+					 * @description await this.addModuleSource and the dpendencies module have
+					 * <PluginContext>.load resolveDependencies: true
+					 * @author justinhone <justinhonejiang@gmail.com>
+					 * @date 2024-10-08 01:07
+					 */
+					waitForDependencyResolution(loadPromise)
+				: /**
+					 * @description await this.addModuleSource
+					 * <PluginContext>.load resolveDependencies: false
+					 * @author justinhone <justinhonejiang@gmail.com>
+					 * @date 2024-10-08 01:06
+					 */
+					loadPromise;
 		}
 		if (isEntry) {
 			// This reverts the changes in addEntryWithImplicitDependants and needs to
@@ -695,6 +840,14 @@ export class ModuleLoader {
 		return this.fetchModuleDependencies(module, ...(await loadPromise));
 	}
 
+	/**
+	 * @description 输入输出相同, 这里只是检查 resolvedId 是否被正确的解析出来了
+	 * 当 resolvedId 为空, 并且 source 是相对路径时, 或者
+	 * 属于external类型或syntheticNamedExports时，则向插件钩子中报告有加载了不正确的模块
+	 * 📜可通过日志查询是否加载了不正确的模块
+	 * @author justinhone <justinhonejiang@gmail.com>
+	 * @date 2024-10-02 11:06
+	 */
 	private handleInvalidResolvedId(
 		resolvedId: ResolvedId | null,
 		source: string,
@@ -721,6 +874,13 @@ export class ModuleLoader {
 		return resolvedId;
 	}
 
+	/**
+	 * @description
+	 * @method [resolveId] fire resolveId hooks
+	 * @method [fetchModule]
+	 * @author justinhone <justinhonejiang@gmail.com>
+	 * @date 2024-10-04 13:01
+	 */
 	private async loadEntryModule(
 		unresolvedId: string,
 		isEntry: boolean,
@@ -869,6 +1029,11 @@ function isNotAbsoluteExternal(
 }
 
 async function waitForDependencyResolution(loadPromise: LoadModulePromise) {
+	/**
+	 * @description just await this.addModuleSource in the first step.
+	 * @author justinhone <justinhonejiang@gmail.com>
+	 * @date 2024-10-08 01:22
+	 */
 	const [resolveStaticDependencyPromises, resolveDynamicImportPromises] = await loadPromise;
 	return Promise.all([...resolveStaticDependencyPromises, ...resolveDynamicImportPromises]);
 }

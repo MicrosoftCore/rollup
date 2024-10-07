@@ -151,7 +151,7 @@ export class PluginDriver {
 	 * 这里判断钩子的返回值必须是 null 时才会跳过当前钩子交给下一个钩子执行
 	 *
 	 * @callee
-	 * 类内部调用
+	 * this.hookFirst
 	 * resolveIdViaPlugins
 	 * @author justinhone <justinhonejiang@gmail.com>
 	 * @date 2024-10-01 14:44
