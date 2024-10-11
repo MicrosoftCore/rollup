@@ -234,7 +234,7 @@ export class ModuleLoader {
 
 	/**
 	 * @description Module通过 addImport & ast parse 分析出当前模块的sourcesWithAttributes
-	 * Note: getResolveStaticDependencyPromises itself is a sync function
+	 * @type {sync function}
 	 * @author justinhone <justinhonejiang@gmail.com>
 	 * @date 2024-10-02 10:56
 	 */
@@ -542,6 +542,15 @@ export class ModuleLoader {
 	/**
 	 * @description <PluginContext>.load 的调用时 preloadModule
 	 * @callee <PluginContext>.load
+	 *
+	 * Add "resolveDependencies" option to "this.load"
+	 * @see {@link https://github.com/rollup/rollup/pull/4358}
+	 * This PR adds a flag resolveDependencies to this.load that will make this.load wait
+	 * until importedIds and dynamicallyImportedIds for the module in question have been resolved.
+	 * Thus it is no longer necessary to wait for moduleParsed to get this information.
+	 *
+	 * ☢️when waiting for this hook in resolveId,
+	 * it is very easy to accidentally create a dead-lock where the hook waits for its own completion.
 	 * @author justinhone <justinhonejiang@gmail.com>
 	 * @date 2024-10-02 11:45
 	 */
@@ -861,39 +870,14 @@ export class ModuleLoader {
 	}
 
 	/**
-	 * @description 输入输出相同, 这里只是检查 resolvedId 是否被正确的解析出来了
-	 * 当 resolvedId 为空, 并且 source 是相对路径时, 或者
-	 * 属于external类型或syntheticNamedExports时，则向插件钩子中报告有加载了不正确的模块
-	 * 📜可通过日志查询是否加载了不正确的模块
+	 * @description
+	 * <PluginContext>.resolveDependencies: true await static and dynamic dependencies,
+	 * otherwise false await addModuleSource
+	 *
+	 * If isPreload is explicitly false, resolveId and fetchModule are called recursively.
 	 * @author justinhone <justinhonejiang@gmail.com>
-	 * @date 2024-10-02 11:06
+	 * @date 2024-10-09 23:17
 	 */
-	private handleInvalidResolvedId(
-		resolvedId: ResolvedId | null,
-		source: string,
-		importer: string,
-		attributes: Record<string, string>
-	): ResolvedId {
-		if (resolvedId === null) {
-			if (isRelative(source)) {
-				return error(logUnresolvedImport(source, importer));
-			}
-			this.options.onLog(LOGLEVEL_WARN, logUnresolvedImportTreatedAsExternal(source, importer));
-			return {
-				attributes,
-				external: true,
-				id: source,
-				meta: {},
-				moduleSideEffects: this.hasModuleSideEffects(source, true),
-				resolvedBy: 'rollup',
-				syntheticNamedExports: false
-			};
-		} else if (resolvedId.external && resolvedId.syntheticNamedExports) {
-			this.options.onLog(LOGLEVEL_WARN, logExternalSyntheticExports(source, importer));
-		}
-		return resolvedId;
-	}
-
 	private async handleExistingModule(module: Module, isEntry: boolean, isPreload: PreloadType) {
 		const loadPromise = this.moduleLoadPromises.get(module)!;
 		if (isPreload) {
@@ -991,6 +975,37 @@ export class ModuleLoader {
 			importer,
 			attributes
 		);
+	}
+
+	/**
+	 * @description 📜可通过日志查询是否加载了不正确的模块
+	 * @author justinhone <justinhonejiang@gmail.com>
+	 * @date 2024-10-02 11:06
+	 */
+	private handleInvalidResolvedId(
+		resolvedId: ResolvedId | null,
+		source: string,
+		importer: string,
+		attributes: Record<string, string>
+	): ResolvedId {
+		if (resolvedId === null) {
+			if (isRelative(source)) {
+				return error(logUnresolvedImport(source, importer));
+			}
+			this.options.onLog(LOGLEVEL_WARN, logUnresolvedImportTreatedAsExternal(source, importer));
+			return {
+				attributes,
+				external: true,
+				id: source,
+				meta: {},
+				moduleSideEffects: this.hasModuleSideEffects(source, true),
+				resolvedBy: 'rollup',
+				syntheticNamedExports: false
+			};
+		} else if (resolvedId.external && resolvedId.syntheticNamedExports) {
+			this.options.onLog(LOGLEVEL_WARN, logExternalSyntheticExports(source, importer));
+		}
+		return resolvedId;
 	}
 }
 
