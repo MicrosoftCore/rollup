@@ -100,6 +100,13 @@ export class ModuleLoader {
 		 * @description 解析 treeshake options (merged by default)
 		 * 如果没传则为空数组
 		 * 📌 外部获取包含副作用的模块id传进来，看rollup如何分析
+		 *
+		 * @see {@link https://rollupjs.org/configuration-options/#treeshake-modulesideeffects}
+		 *
+		 * 如果 resolveId 返回 modulesideeffects 为 null | undefined 则调用
+		 * 此函数用来计算 modulesideeffects, 此函数为统一的计算入口
+		 * @param {string} Resolve.id
+		 * @param {boolean} Resolve.external
 		 * @author justinhone <justinhonejiang@gmail.com>
 		 * @date 2024-10-01 11:50
 		 */
@@ -579,6 +586,11 @@ export class ModuleLoader {
 		attributes,
 		skip = null
 	) => {
+		/**
+		 * @description 返回 <PluginContext>.resolve 的标准化结果
+		 * @author justinhone <justinhonejiang@gmail.com>
+		 * @date 2024-10-15 00:33
+		 */
 		return this.getResolvedIdWithDefaults(
 			this.getNormalizedResolvedIdWithoutDefaults(
 				/**
@@ -849,6 +861,12 @@ export class ModuleLoader {
 		};
 	}
 
+	/**
+	 * @description 返回 <PluginContext>.resolve 的标准化结果
+	 * @see {@link https://rollupjs.org/plugin-development/#this-getmoduleinfo}.ResolvedId
+	 * @author justinhone <justinhonejiang@gmail.com>
+	 * @date 2024-10-15 00:33
+	 */
 	private getResolvedIdWithDefaults(
 		resolvedId: NormalizedResolveIdWithoutDefaults | null,
 		attributes: Record<string, string>
@@ -1033,6 +1051,11 @@ function addChunkNamesToModule(
 	}
 }
 
+/**
+ * @description @see {@link https://rollupjs.org/configuration-options/#makeabsoluteexternalsrelative}
+ * @author justinhone <justinhonejiang@gmail.com>
+ * @date 2024-10-15 00:36
+ */
 function isNotAbsoluteExternal(
 	id: string,
 	source: string,

@@ -79,6 +79,22 @@ export function getPluginContext(
 			watchMode: graph.watchMode
 		},
 		parse: parseAst,
+		/**
+		 * @description BLANK 使用 Object.create(null) 创建的空对象, 不会继承Object的原型链
+		 *
+		 * @returns {Promise<ResolvedId | null>}
+		 *
+		 * @typedef {ResolvedId}
+		 * @property {string} id @defaultvalue ResolvedId.id
+		 * @property {boolean | 'absolute'} external @defaultvalue false
+		 * @property {Record<string, string>} attributes @defaultvalue attributes
+		 * @property {Record<string, any>} meta @defaultvalue {}
+		 * @property {boolean | 'no-treeshake'} moduleSideEffects @defaultvalue 特殊处理
+		 * @property {string} resolvedBy @defaultvalue 'rollup''
+		 * @property {boolean | string} syntheticNamedExports @defaultvalue false
+		 * @author justinhone <justinhonejiang@gmail.com>
+		 * @date 2024-10-15 00:37
+		 */
 		resolve(source, importer, { attributes, custom, isEntry, skipSelf } = BLANK) {
 			skipSelf ??= true;
 			return graph.moduleLoader.resolveId(

@@ -1,6 +1,7 @@
 import type { ModuleLoaderResolveId } from '../ModuleLoader';
 import type { CustomPluginOptions, Plugin, ResolveIdResult } from '../rollup/types';
 import type { PluginDriver } from './PluginDriver';
+import { cyan } from './colors';
 import { lstat, readdir, realpath } from './fs';
 import { basename, dirname, isAbsolute, resolve } from './path';
 import { resolveIdViaPlugins } from './resolveIdViaPlugins';
@@ -58,6 +59,12 @@ export async function resolveId(
 				resolvedBy: plugin.name
 			};
 		}
+		console.log(
+			`all resolvedId hooks await completion,
+			${cyan('importee')}: ${source}
+			${cyan('resolution')}: ${JSON.stringify(resolveIdResult)}
+			`
+		);
 		return resolveIdResult;
 	}
 

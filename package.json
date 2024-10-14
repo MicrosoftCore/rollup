@@ -108,8 +108,7 @@
   },
   "dependencies": {
     "@rollup/rollup-darwin-arm64": "4.18.0",
-    "@rollup/rollup-win32-x64-msvc": "^4.18.0",
-    "@types/estree": "1.0.5"
+    "@rollup/rollup-win32-x64-msvc": "^4.18.0"
   },
   "devDependenciesComments": {
     "@types/node": "Version 18.19.0 breaks chokidar and vite types",
@@ -136,6 +135,7 @@
     "@rollup/pluginutils": "^5.1.0",
     "@shikijs/vitepress-twoslash": "^1.10.0",
     "@types/eslint": "^8.56.10",
+    "@types/estree": "^1.0.6",
     "@types/inquirer": "^9.0.7",
     "@types/mocha": "^10.0.7",
     "@types/node": "~18.18.14",
@@ -150,6 +150,7 @@
     "buble": "^0.20.0",
     "builtin-modules": "^4.0.0",
     "chokidar": "^3.6.0",
+    "cli-table3": "^0.6.5",
     "colorette": "^2.0.20",
     "concurrently": "^8.2.2",
     "core-js": "3.36.0",

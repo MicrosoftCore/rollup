@@ -180,6 +180,11 @@ const getHasModuleSideEffects = (
 	if (typeof moduleSideEffectsOption === 'boolean') {
 		return () => moduleSideEffectsOption;
 	}
+	/**
+	 * @description @see {@link https://rollupjs.org/configuration-options/#treeshake-modulesideeffects}
+	 * @author justinhone <justinhonejiang@gmail.com>
+	 * @date 2024-10-15 00:42
+	 */
 	if (moduleSideEffectsOption === 'no-external') {
 		return (_id, external) => !external;
 	}

@@ -1,3 +1,5 @@
+import Table from 'cli-table3';
+import { stderr } from '../../cli/logging';
 import type Chunk from '../Chunk';
 import type Graph from '../Graph';
 import type Module from '../Module';
@@ -76,6 +78,7 @@ export class PluginDriver {
 		outputOptions: NormalizedOutputOptions
 	) => void;
 
+	private readonly table: Table.Table;
 	private readonly fileEmitter: FileEmitter;
 	private readonly pluginContexts: ReadonlyMap<Plugin, PluginContext>;
 	private readonly plugins: readonly Plugin[];
@@ -89,6 +92,10 @@ export class PluginDriver {
 		private readonly pluginCache: Record<string, SerializablePluginCache> | undefined,
 		basePluginDriver?: PluginDriver
 	) {
+		this.table = new Table({
+			chars: { 'left-mid': '', mid: '', 'mid-mid': '', 'right-mid': '' },
+			colWidths: [20, 20, 30, 30, 30]
+		});
 		this.fileEmitter = new FileEmitter(
 			graph,
 			options,
@@ -314,6 +321,30 @@ export class PluginDriver {
 		);
 	}
 
+	private stdOutput({
+		parameters,
+		hookName,
+		plugin,
+		hookResult,
+		fulfilled
+	}: {
+		parameters: unknown[];
+		hookName: string;
+		plugin: Plugin;
+		hookResult: any;
+		fulfilled: boolean;
+	}) {
+		this.table.push([
+			plugin.name,
+			(hookName += fulfilled ? '(async)' : ''),
+			hookResult,
+			parameters[0],
+			parameters[1]
+		]);
+
+		stderr(this.table.toString());
+	}
+
 	/**
 	 * Run an async plugin hook and return the result.
 	 * @param hookName Name of the plugin hook. Must be either in `PluginHooks`
@@ -360,6 +391,7 @@ export class PluginDriver {
 
 				if (!hookResult?.then) {
 					// short circuit for non-thenables and non-Promises
+					this.stdOutput({ fulfilled: false, hookName, hookResult, parameters, plugin });
 					return hookResult;
 				}
 
@@ -376,6 +408,7 @@ export class PluginDriver {
 				// which at least one test and some plugins in the wild may depend on.
 				return Promise.resolve(hookResult).then(result => {
 					// action was fulfilled
+					this.stdOutput({ fulfilled: true, hookName, hookResult: result, parameters, plugin });
 					this.unfulfilledActions.delete(action!);
 					return result;
 				});
