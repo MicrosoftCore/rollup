@@ -1,5 +1,3 @@
-import Table from 'cli-table3';
-import { stderr } from '../../cli/logging';
 import type Chunk from '../Chunk';
 import type Graph from '../Graph';
 import type Module from '../Module';
@@ -78,7 +76,6 @@ export class PluginDriver {
 		outputOptions: NormalizedOutputOptions
 	) => void;
 
-	private readonly table: Table.Table;
 	private readonly fileEmitter: FileEmitter;
 	private readonly pluginContexts: ReadonlyMap<Plugin, PluginContext>;
 	private readonly plugins: readonly Plugin[];
@@ -92,10 +89,6 @@ export class PluginDriver {
 		private readonly pluginCache: Record<string, SerializablePluginCache> | undefined,
 		basePluginDriver?: PluginDriver
 	) {
-		this.table = new Table({
-			chars: { 'left-mid': '', mid: '', 'mid-mid': '', 'right-mid': '' },
-			colWidths: [20, 20, 30, 30, 30]
-		});
 		this.fileEmitter = new FileEmitter(
 			graph,
 			options,
@@ -334,15 +327,17 @@ export class PluginDriver {
 		hookResult: any;
 		fulfilled: boolean;
 	}) {
-		this.table.push([
-			plugin.name,
-			(hookName += fulfilled ? '(async)' : ''),
-			hookResult,
-			parameters[0],
-			parameters[1]
-		]);
-
-		stderr(this.table.toString());
+		if (hookName !== 'print') {
+			this.hookSeq('print', [
+				{
+					fulfilled,
+					hookName,
+					hookResult,
+					parameters,
+					plugin
+				}
+			]);
+		}
 	}
 
 	/**

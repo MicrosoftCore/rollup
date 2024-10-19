@@ -18,6 +18,7 @@ import type {
 } from './rollup/types';
 import type { PluginDriver } from './utils/PluginDriver';
 import { EMPTY_OBJECT } from './utils/blank';
+import { greenBright, yellowBright } from './utils/colors';
 import { readFile } from './utils/fs';
 import { LOGLEVEL_WARN } from './utils/logging';
 import {
@@ -454,13 +455,33 @@ export class ModuleLoader {
 		await loadAndResolveDependenciesPromise;
 	}
 
+	/**
+	 * @description 接收 this.getResolveStaticDependencyPromises 返回的 promise 数组
+	 * @author justinhone <justinhonejiang@gmail.com>
+	 * @date 2024-10-19 14:03
+	 */
 	private async fetchStaticDependencies(
 		module: Module,
 		resolveStaticDependencyPromises: readonly ResolveStaticDependencyPromise[]
 	): Promise<void> {
 		for (const dependency of await Promise.all(
 			resolveStaticDependencyPromises.map(resolveStaticDependencyPromise =>
+				/**
+				 * @see this.getResolveStaticDependencyPromises
+				 * @description Wait for await in this.getResolveStaticDependencyPromises
+				 * Note: Here, the resolveId of await current module static and dynamic will be traversed,
+				 * Adopting the breadth-first algorithm, all dependencies will pass the first plugin first,
+				 * then the second plugin,
+				 * Instead of on dependency passing all plugins, then going tyo the second dependency
+				 * @author justinhone <justinhonejiang@gmail.com>
+				 * @date 2024-10-19 14:04
+				 */
 				resolveStaticDependencyPromise.then(([source, resolvedId]) =>
+					/**
+					 * @description 该函数 await this.getResolveStaticDependencyPromises 的结果
+					 * @author justinhone <justinhonejiang@gmail.com>
+					 * @date 2024-10-19 14:07
+					 */
 					this.fetchResolvedDependency(source, module.id, resolvedId)
 				)
 			)
@@ -694,6 +715,12 @@ export class ModuleLoader {
 			 */
 			source = await this.graph.fileOperationQueue.run(async () => {
 				const content = await this.pluginDriver.hookFirst('load', [id]);
+				this.pluginDriver.hookSeq('print', [
+					`all ${yellowBright('load')} hooks promises fulfilled,
+					${greenBright('Id')}: ${id}
+					${greenBright('LoadResult')}: ${JSON.stringify(content)}
+					`
+				]);
 				if (content !== null) return content;
 				this.graph.watchFiles[id] = true;
 				/**
@@ -766,6 +793,7 @@ export class ModuleLoader {
 			 * @date 2024-10-01 14:12
 			 */
 			module.updateOptions(sourceDescription);
+
 			await module.setSource(
 				await transform(sourceDescription, module, this.pluginDriver, this.options.onLog)
 			);

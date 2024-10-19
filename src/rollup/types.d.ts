@@ -430,11 +430,14 @@ export interface FunctionPluginHooks {
 		options: NormalizedOutputOptions,
 		bundle: OutputBundle
 	) => void;
+
+	print: (this: PluginContext, parameters: any) => void;
 }
 
 export type OutputPluginHooks =
 	| 'augmentChunkHash'
 	| 'generateBundle'
+	| 'print'
 	| 'outputOptions'
 	| 'renderChunk'
 	| 'renderDynamicImport'
@@ -472,7 +475,8 @@ export type SequentialPluginHooks =
 	| 'options'
 	| 'outputOptions'
 	| 'renderChunk'
-	| 'transform';
+	| 'transform'
+	| 'print';
 
 export type ParallelPluginHooks = Exclude<
 	keyof FunctionPluginHooks | AddonHooks,

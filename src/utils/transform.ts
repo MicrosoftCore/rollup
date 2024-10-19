@@ -17,6 +17,7 @@ import type {
 import { getTrackedPluginCache } from './PluginCache';
 import type { PluginDriver } from './PluginDriver';
 import { collapseSourcemap } from './collapseSourcemaps';
+import { greenBright, yellowBright } from './colors';
 import { decodedSourcemap } from './decodedSourcemap';
 import { LOGLEVEL_WARN } from './logging';
 import {
@@ -196,6 +197,19 @@ export default async function transform(
 		emittedFiles.length > 0
 	)
 		module.transformFiles = emittedFiles;
+
+	pluginDriver.hookSeq('print', [
+		`all ${yellowBright('tranform')} hooks promises fulfilled,
+			${greenBright('Id')}: ${id}
+			${greenBright('TransformResult')}: ${JSON.stringify({
+				ast,
+				code: code.slice(0, 200),
+				customTransformCache,
+				originalCode: originalCode.slice(0, 200),
+				transformDependencies
+			})}
+			`
+	]);
 
 	return {
 		ast,
